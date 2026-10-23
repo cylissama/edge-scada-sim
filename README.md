@@ -118,4 +118,3 @@ automatically.
   That's why the producers and dashboard run in containers. To reach it from
   your host, add a second listener in `docker-compose.yml`.
 - `apache/kafka:3.9.0` is pinned. Change the tag to try other versions.
-# kafka-testing

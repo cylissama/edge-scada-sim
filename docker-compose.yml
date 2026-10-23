@@ -1,0 +1,106 @@
+services:
+  # Single Kafka broker running in KRaft mode (no ZooKeeper).
+  kafka:
+    image: apache/kafka:3.9.0
+    container_name: kafka
+    hostname: kafka
+    environment:
+      CLUSTER_ID: "4L6g3nShT-eMCtK--X86sw"
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_RETENTION_HOURS: 168
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  # One-shot job: creates the topics with 3 partitions each, then exits.
+  topic-init:
+    image: apache/kafka:3.9.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - |
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic sensor-readings --partitions 3 --replication-factor 1 &&
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic imu-readings --partitions 3 --replication-factor 1
+
+  # Three simulated temperature sensors. Same image, different SENSOR_ID.
+  producer-1:
+    build: ./producer
+    restart: unless-stopped
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+      KAFKA_TOPIC: sensor-readings
+      SENSOR_ID: sensor-A
+      BASE_TEMP: "21.0"
+      INTERVAL_SECONDS: "1.0"
+    depends_on:
+      topic-init:
+        condition: service_completed_successfully
+
+  producer-2:
+    build: ./producer
+    restart: unless-stopped
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+      KAFKA_TOPIC: sensor-readings
+      SENSOR_ID: sensor-B
+      BASE_TEMP: "18.5"
+      INTERVAL_SECONDS: "1.0"
+    depends_on:
+      topic-init:
+        condition: service_completed_successfully
+
+  producer-3:
+    build: ./producer
+    restart: unless-stopped
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+      KAFKA_TOPIC: sensor-readings
+      SENSOR_ID: sensor-C
+      BASE_TEMP: "24.0"
+      INTERVAL_SECONDS: "1.0"
+    depends_on:
+      topic-init:
+        condition: service_completed_successfully
+
+  # Simulated 6-axis IMU publishing 10 Hz accel/gyro readings to imu-readings.
+  imu-1:
+    build: ./imu-producer
+    restart: unless-stopped
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+      KAFKA_TOPIC: imu-readings
+      DEVICE_ID: imu-1
+      RATE_HZ: "10"
+    depends_on:
+      topic-init:
+        condition: service_completed_successfully
+
+  # Consumer in group "dashboard" + HTTP server on http://localhost:8080
+  dashboard:
+    build: ./dashboard
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+      KAFKA_TOPIC: sensor-readings
+      KAFKA_GROUP_ID: dashboard
+      PORT: "8080"
+    depends_on:
+      topic-init:
+        condition: service_completed_successfully
