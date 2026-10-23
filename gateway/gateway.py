@@ -33,8 +33,13 @@ NAMESPACE = "urn:edge-scada-sim"
 SEVERITY = {"hihi": "high", "lolo": "high", "hi": "medium", "lo": "medium", "ne": "medium"}
 
 
-def alarm_level(limits, value):
-    """Return the active alarm level for a value ("hihi", "hi", "lo", "lolo", "ne") or None."""
+def alarm_level(limits, value, active=None):
+    """Return the alarm level for a value ("hihi", "hi", "lo", "lolo", "ne") or None.
+
+    An active analog alarm only clears once the value is back past the limit by a
+    deadband (limits["deadband"], default 2 % of the limit), so a value hovering
+    at the limit doesn't flood the event log.
+    """
     if "ne" in limits and value != limits["ne"]:
         return "ne"
     if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -43,6 +48,12 @@ def alarm_level(limits, value):
                             ("hi", lambda x: value >= x), ("lo", lambda x: value <= x)):
         if level in limits and breached(limits[level]):
             return level
+    if active in ("hi", "hihi", "lo", "lolo") and active in limits:
+        band = limits.get("deadband", abs(limits[active]) * 0.02)
+        if active in ("hi", "hihi") and value > limits[active] - band:
+            return active
+        if active in ("lo", "lolo") and value < limits[active] + band:
+            return active
     return None
 
 
@@ -91,15 +102,16 @@ class PlcLink:
 
     def check_alarm(self, path, value):
         limits = self.schema.get(path, {}).get("alarm") or {}
-        level = alarm_level(limits, value)
         previous = self.alarms.get(path)
+        level = alarm_level(limits, value, previous)
         if level == previous:
             return
         self.alarms[path] = level
         enum = self.schema[path].get("enum") or {}
         shown = enum.get(str(value), value)
         if level:
-            self.event("alarm", SEVERITY[level], f"{path} {level.upper()} ({shown})",
+            text = f"{path} = {shown}" if level == "ne" else f"{path} {level.upper()} ({shown})"
+            self.event("alarm", SEVERITY[level], text,
                        tag=path, level=level, value=value)
         else:
             self.event("alarm_cleared", "info", f"{path} back to normal ({shown})", tag=path, value=value)

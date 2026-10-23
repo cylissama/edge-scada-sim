@@ -12,9 +12,20 @@ resources:
   - 35-gateway.yaml
   - 40-imus.yaml
   - 45-cameras.yaml
+  - 50-mongo.yaml
+  - 55-historian.yaml
 configMapGenerator:
   - name: plc-tags
     files: [plc-tags.json=config/plc-tags.json]
+# ponytail: dev-only credentials committed in the repo. Real deployments must
+# replace these (e.g. an external secret store) before exposing anything.
+secretGenerator:
+  - name: mongo-auth
+    literals:
+      - username=scada
+      - password=scada-dev-password
+      - ui-username=admin
+      - ui-password=admin
 images:
   - name: edge-scada-sim-imu
     newName: ghcr.io/cylissama/edge-scada-sim-imu
@@ -27,4 +38,7 @@ images:
     newTag: dev
   - name: edge-scada-sim-camera
     newName: ghcr.io/cylissama/edge-scada-sim-camera
+    newTag: dev
+  - name: edge-scada-sim-historian
+    newName: ghcr.io/cylissama/edge-scada-sim-historian
     newTag: dev

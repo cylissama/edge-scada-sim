@@ -23,3 +23,13 @@ Watch PLC tags (`plc-tags`), alarms/events (`scada-events`), IMU data (`imu-read
 kubectl -n scada exec kafka-0 -- /opt/kafka/bin/kafka-console-consumer.sh \
   --bootstrap-server localhost:9092 --topic imu-readings
 ```
+
+## Historian (MongoDB)
+
+Every message is stored in MongoDB (`scada` database, 7-day retention). Browse it with mongo-express:
+
+```sh
+kubectl -n scada port-forward svc/mongo-express 8081   # http://localhost:8081  (admin / admin)
+```
+
+Query recipes are in [`docs/queries.md`](docs/queries.md).

@@ -198,7 +198,12 @@ appears in `plc-tags`.
 
 **Done when:** all four topics flow (`kafka-console-consumer`), and camera positions trace a loop when plotted.
 
-## Phase 3 — MongoDB + historian + query UI
+## Phase 3 — MongoDB + historian + query UI ✅ done
+
+> Built as planned. Additions: `boot_id` is stored on imu/camera docs so gap audits work per device boot.
+> Units are recovered from `devices` after a historian restart. Alarms have a deadband (default 2 % of the limit,
+> or `"deadband"` in a tag's `alarm`). Mongo runs with auth, using dev-only credentials from a kustomize
+> secretGenerator. Verified: killing the historian mid-stream left no seq gaps or duplicates. Recipes: `docs/queries.md`.
 
 ### Data layout — database `scada`
 

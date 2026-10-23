@@ -1,0 +1,31 @@
+# Historian: Kafka consumer group "historian" -> MongoDB "scada" database.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: historian
+  namespace: scada
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: historian}
+  template:
+    metadata:
+      labels: {app: historian, role: core-service, kind: historian}
+    spec:
+      enableServiceLinks: false
+      nodeSelector: {tier: core}
+      containers:
+        - name: historian
+          image: edge-scada-sim-historian
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: KAFKA_BOOTSTRAP, value: "kafka:9092"}
+            - name: MONGO_USER
+              valueFrom: {secretKeyRef: {name: mongo-auth, key: username}}
+            - name: MONGO_PASS
+              valueFrom: {secretKeyRef: {name: mongo-auth, key: password}}
+            - {name: MONGO_URL, value: "mongodb://$(MONGO_USER):$(MONGO_PASS)@mongo:27017/?authSource=admin"}
+            - {name: RETENTION_DAYS, value: "7"}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 192Mi}

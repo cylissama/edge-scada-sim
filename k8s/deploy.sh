@@ -8,7 +8,7 @@ CLUSTER=edge-scada-sim
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 K="kubectl -n scada"
 # Every service image: built from the repo root with <svc>/Dockerfile.
-SERVICES=(imu camera plc gateway)
+SERVICES=(imu camera plc gateway historian)
 
 if [[ "${1:-}" == "teardown" ]]; then
   kind delete cluster --name "$CLUSTER"
