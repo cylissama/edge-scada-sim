@@ -12,7 +12,6 @@ from confluent_kafka import Consumer, KafkaError
 BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "localhost:9092")
 TOPIC = os.getenv("KAFKA_TOPIC", "sensor-readings")
 GROUP_ID = os.getenv("KAFKA_GROUP_ID", "dashboard")
-TOPICS = [TOPIC, "imu-readings"]
 
 _lock = threading.Lock()
 _latest = {}  # sensor_id -> most recent reading (plus Kafka metadata)
@@ -27,8 +26,8 @@ def _consume_loop():
         "auto.offset.reset": "earliest",
         "enable.auto.commit": True,
     })
-    consumer.subscribe(TOPICS)
-    print(f"[bridge] subscribed to {TOPICS} as group '{GROUP_ID}'", flush=True)
+    consumer.subscribe([TOPIC])
+    print(f"[bridge] subscribed to '{TOPIC}' as group '{GROUP_ID}'", flush=True)
 
     while True:
         msg = consumer.poll(1.0)
@@ -52,13 +51,8 @@ def _consume_loop():
         reading["offset"] = msg.offset()
         reading["received_at"] = time.time()
 
-        # Normalize to device_id; handle both sensor_id and device_id
-        device_id = reading.get("device_id") or reading.get("sensor_id")
-        if not device_id:
-            continue
-
         with _lock:
-            _latest[device_id] = reading
+            _latest[reading["sensor_id"]] = reading
             _stats["messages"] += 1
 
 
@@ -69,6 +63,6 @@ def start():
 
 def snapshot():
     with _lock:
-        sensors = sorted(_latest.values(), key=lambda r: r.get("device_id") or r.get("sensor_id"))
+        sensors = sorted(_latest.values(), key=lambda r: r["sensor_id"])
         stats = dict(_stats)
     return {"sensors": sensors, "stats": stats, "topic": TOPIC, "group": GROUP_ID}

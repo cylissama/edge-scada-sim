@@ -1,0 +1,50 @@
+# Keep replicas at 1 for now: the dashboard holds the latest readings in memory,
+# so with 2+ replicas each pod would only see the partitions assigned to it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard
+  namespace: kafka-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard
+  template:
+    metadata:
+      labels:
+        app: dashboard
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: dashboard
+          image: dashboard:1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: http, containerPort: 8080}
+          env:
+            - {name: KAFKA_BOOTSTRAP, value: "kafka:9092"}
+            - {name: KAFKA_TOPIC, value: "sensor-readings"}
+            - {name: KAFKA_GROUP_ID, value: "dashboard"}
+            - {name: PORT, value: "8080"}
+          readinessProbe:               # replaces "ports:" + healthcheck from Compose
+            httpGet: {path: /api/readings, port: http}
+            periodSeconds: 5
+          livenessProbe:                # restart the pod if the server hangs
+            httpGet: {path: /api/readings, port: http}
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            requests: {cpu: 50m, memory: 96Mi}
+            limits: {memory: 256Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard
+  namespace: kafka-lab
+spec:
+  selector:
+    app: dashboard
+  ports:
+    - {name: http, port: 8080, targetPort: http}

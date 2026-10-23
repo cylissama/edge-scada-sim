@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imu
+  namespace: kafka-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: imu
+  template:
+    metadata:
+      labels:
+        app: imu
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: producer
+          image: imu-producer:1
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: KAFKA_BOOTSTRAP, value: "kafka:9092"}
+            - {name: KAFKA_TOPIC, value: "imu-readings"}
+            - {name: DEVICE_ID, value: "imu-1"}
+            - {name: RATE_HZ, value: "10"}
+          resources:
+            requests: {cpu: 20m, memory: 48Mi}
+            limits: {memory: 128Mi}

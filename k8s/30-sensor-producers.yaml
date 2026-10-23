@@ -1,0 +1,51 @@
+# Three temperature sensors from ONE manifest.
+# A StatefulSet gives pods stable names (sensor-0, sensor-1, sensor-2), and the
+# Downward API injects that name as SENSOR_ID. If a pod is deleted, its
+# replacement comes back with the same name, so the dashboard doesn't grow
+# stale rows. (A Deployment would give random names like sensor-7d9f-xk2p.)
+apiVersion: v1
+kind: Service
+metadata:
+  name: sensor
+  namespace: kafka-lab
+spec:
+  clusterIP: None
+  selector:
+    app: sensor
+  ports:
+    - {name: none, port: 80}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sensor
+  namespace: kafka-lab
+spec:
+  serviceName: sensor
+  replicas: 3
+  podManagementPolicy: Parallel   # start all three at once
+  selector:
+    matchLabels:
+      app: sensor
+  template:
+    metadata:
+      labels:
+        app: sensor
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: producer
+          image: sensor-producer:1
+          imagePullPolicy: IfNotPresent   # use the image loaded into kind
+          env:
+            - {name: KAFKA_BOOTSTRAP, value: "kafka:9092"}
+            - {name: KAFKA_TOPIC, value: "sensor-readings"}
+            - {name: INTERVAL_SECONDS, value: "1.0"}
+            - {name: BASE_TEMP, value: "21.0"}
+            - name: SENSOR_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          resources:
+            requests: {cpu: 20m, memory: 48Mi}
+            limits: {memory: 128Mi}

@@ -3,12 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kafka Dashboard</title>
+  <title>Kafka Sensor Dashboard</title>
   <style>
     body { font-family: system-ui, sans-serif; margin: 2rem; color: #1d1d1f; background: #fafafa; }
     h1 { margin-bottom: 0.25rem; }
-    h2 { margin: 2rem 0 0.5rem; }
-    h2 small { font-weight: 400; font-size: 0.8rem; color: #666; }
     .meta { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
     table { border-collapse: collapse; width: 100%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     th, td { padding: 0.6rem 0.9rem; text-align: left; border-bottom: 1px solid #eee; }
@@ -23,40 +21,33 @@
   </style>
 </head>
 <body>
-  <h1>Kafka dashboard</h1>
+  <h1>Sensor readings</h1>
   <div class="meta">
-    Topics <code>{{ topic }}</code>, <code>imu-readings</code> · consumer group <code>{{ group }}</code>
+    Topic <code>{{ topic }}</code> · consumer group <code>{{ group }}</code>
     · <span id="totals">waiting for data…</span>
   </div>
 
-  <h2>Temperature <small><code>{{ topic }}</code></small></h2>
-  <table>
-    <thead>
-      <tr><th>Sensor</th><th>Temperature</th><th>Seq</th><th>Partition</th><th>Offset</th><th>Produced at (UTC)</th><th>Age</th></tr>
-    </thead>
-    <tbody id="temp-rows"></tbody>
-  </table>
-
-  <h2>IMU <small><code>imu-readings</code></small></h2>
   <table>
     <thead>
       <tr>
-        <th rowspan="2">Device</th>
-        <th colspan="3">Acceleration (m/s²)</th>
-        <th colspan="3">Gyroscope (°/s)</th>
-        <th rowspan="2">Seq</th><th rowspan="2">Partition</th><th rowspan="2">Offset</th>
-        <th rowspan="2">Produced at (UTC)</th><th rowspan="2">Age</th>
+        <th>Sensor</th>
+        <th>Temperature</th>
+        <th>Seq</th>
+        <th>Partition</th>
+        <th>Offset</th>
+        <th>Produced at (UTC)</th>
+        <th>Age</th>
       </tr>
-      <tr><th>X</th><th>Y</th><th>Z</th><th>X</th><th>Y</th><th>Z</th></tr>
     </thead>
-    <tbody id="imu-rows"></tbody>
+    <tbody id="rows">
+      <tr><td colspan="7">No messages yet. Producers may still be starting.</td></tr>
+    </tbody>
   </table>
 
   <div id="status"></div>
 
   <script>
-    const tempRows = document.getElementById('temp-rows');
-    const imuRows = document.getElementById('imu-rows');
+    const rowsEl = document.getElementById('rows');
     const totalsEl = document.getElementById('totals');
     const statusEl = document.getElementById('status');
 
@@ -66,51 +57,35 @@
       return 'warm';
     }
 
-    function row(cells) {
-      const tr = document.createElement('tr');
-      for (const [text, cls] of cells) {
-        const td = document.createElement('td');
-        td.textContent = text;
-        if (cls) td.className = cls;
-        tr.appendChild(td);
-      }
-      return tr;
+    function cell(text, className) {
+      const td = document.createElement('td');
+      td.textContent = text;
+      if (className) td.className = className;
+      return td;
     }
-
-    const f = v => (typeof v === 'number' ? v.toFixed(2) : '—');
-    const empty = (tbody, cols, what) =>
-      tbody.replaceChildren(row([[`No ${what} messages yet.`]])) || (tbody.firstChild.firstChild.colSpan = cols);
 
     async function refresh() {
       try {
         const res = await fetch('/api/readings', { cache: 'no-store' });
         const data = await res.json();
         const now = Date.now() / 1000;
-        const common = s => {
-          const age = now - s.received_at;
-          return [[s.seq, 'num'], [s.partition, 'num'], [s.offset, 'num'],
-                  [s.timestamp.replace('+00:00', '')], [age.toFixed(1) + ' s', age > 5 ? 'stale' : '']];
-        };
 
-        const temps = data.sensors.filter(s => s.temperature_c !== undefined);
-        const imus = data.sensors.filter(s => s.accel_ms2 || s.gyro_dps);
-
-        if (temps.length) {
-          tempRows.replaceChildren(...temps.map(s => row([
-            [s.sensor_id || s.device_id],
-            [s.temperature_c.toFixed(2) + ' °C', 'temp ' + tempClass(s.temperature_c)],
-            ...common(s),
-          ])));
-        } else empty(tempRows, 7, 'temperature');
-
-        if (imus.length) {
-          imuRows.replaceChildren(...imus.map(s => row([
-            [s.device_id || s.sensor_id],
-            ...['x', 'y', 'z'].map(k => [f(s.accel_ms2 && s.accel_ms2[k]), 'num']),
-            ...['x', 'y', 'z'].map(k => [f(s.gyro_dps && s.gyro_dps[k]), 'num']),
-            ...common(s),
-          ])));
-        } else empty(imuRows, 12, 'IMU');
+        if (data.sensors.length === 0) {
+          rowsEl.innerHTML = '<tr><td colspan="7">No messages yet. Producers may still be starting.</td></tr>';
+        } else {
+          rowsEl.replaceChildren(...data.sensors.map(s => {
+            const tr = document.createElement('tr');
+            const age = now - s.received_at;
+            tr.appendChild(cell(s.sensor_id));
+            tr.appendChild(cell(s.temperature_c.toFixed(2) + ' °C', 'temp ' + tempClass(s.temperature_c)));
+            tr.appendChild(cell(s.seq, 'num'));
+            tr.appendChild(cell(s.partition, 'num'));
+            tr.appendChild(cell(s.offset, 'num'));
+            tr.appendChild(cell(s.timestamp.replace('+00:00', '')));
+            tr.appendChild(cell(age.toFixed(1) + ' s', age > 5 ? 'stale' : ''));
+            return tr;
+          }));
+        }
 
         totalsEl.textContent = data.stats.messages + ' messages consumed';
         statusEl.textContent = 'Last refresh ' + new Date().toLocaleTimeString();

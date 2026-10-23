@@ -1,0 +1,26 @@
+# Run-to-completion task: create both topics, then exit.
+# backoffLimit lets K8s retry if the broker isn't quite ready yet.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: topic-init
+  namespace: kafka-lab
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      enableServiceLinks: false
+      restartPolicy: OnFailure
+      containers:
+        - name: topic-init
+          image: apache/kafka:3.9.0
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              T=/opt/kafka/bin/kafka-topics.sh
+              B=kafka:9092
+              $T --bootstrap-server $B --create --if-not-exists --topic sensor-readings --partitions 3 --replication-factor 1
+              $T --bootstrap-server $B --create --if-not-exists --topic imu-readings --partitions 3 --replication-factor 1
+              $T --bootstrap-server $B --list
