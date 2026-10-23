@@ -40,8 +40,9 @@ dashboard polling `/api/readings` for `sensor-readings` only.
 ### Repo layout after Phase 0
 
 ```
-config/plc-tags.json        # the one file you edit to change PLC tags
-plc/  gateway/  imu/  camera/  historian/  api/  web/
+common/telemetry.py         # shared envelope + Kafka producer helpers
+k8s/config/plc-tags.json    # the one file you edit to change PLC tags (kustomize only reads files under k8s/)
+plc/  gateway/  imu/  camera/  historian/  api/  web/   # build from repo root: docker build -f <svc>/Dockerfile .
 k8s/                        # manifests + kustomization.yaml + deploy.sh + kind-config.yaml
 .github/workflows/ci.yml
 ```
@@ -67,17 +68,18 @@ unique, even after a restart resets `seq` (needed for the duplicate/gap checks i
 
 ---
 
-## Phase 0 — Foundation + CI skeleton
+## Phase 0 — Foundation + CI skeleton ✅ done
 
 - Remove `docker-compose.yml` and the temperature sensors; rename and move the dirs as above.
 - `k8s/kind-config.yaml`: 1 control-plane + 2 workers, labelled `tier=edge` / `tier=core`.
   Edge pods get `nodeSelector: {tier: edge}`.
 - `k8s/kustomization.yaml`:
-  - `configMapGenerator` builds a ConfigMap from `config/plc-tags.json`. The hash suffix it adds means
+  - `configMapGenerator` builds a ConfigMap from `k8s/config/plc-tags.json`. The hash suffix it adds means
     editing the JSON and re-applying **automatically restarts the PLCs**.
   - `images:` overrides, so the same manifests use local `:dev` images or GHCR `:<sha>` images in CI.
 - `deploy.sh` keeps its step-by-step order (Kafka ready → topics → everything else), switched to `kubectl apply -k`.
-- A small `envelope.py` (~15 lines) copied into each Python image. Not worth publishing as a package.
+- `common/telemetry.py` holds the envelope and producer helpers. Images build from the repo root so each Dockerfile copies it in, with no package publishing.
+- Namespace `scada`, kind cluster `edge-scada-sim`. The configMapGenerator waits for Phase 1, when the tags file exists.
 - **CI (`.github/workflows/ci.yml`)**, on every push and PR:
   - `ruff` lint + `pytest` for all Python dirs
   - `kubeconform` validation of the rendered manifests (`kubectl kustomize k8s | kubeconform`)
@@ -87,7 +89,7 @@ unique, even after a restart resets `seq` (needed for the duplicate/gap checks i
 
 ## Phase 1 — PLC simulators (OPC UA) + edge gateway
 
-### Tag model — `config/plc-tags.json`
+### Tag model — `k8s/config/plc-tags.json`
 
 Scenario: one production cell. **plc-1** runs a conveyor driven by a VFD (variable-frequency drive);
 **plc-2** runs a robot cell with spindle and coolant. JSON nesting becomes OPC UA folders. Node ids
@@ -164,7 +166,7 @@ How each tag gets its value:
   marks that PLC's last values as quality `Bad`.
 - Browses each PLC's address space on connect, so new JSON tags show up with no gateway change.
 
-**Done when:** editing `config/plc-tags.json` + `kubectl apply -k k8s` → PLC restarts → the new tag
+**Done when:** editing `k8s/config/plc-tags.json` + `kubectl apply -k k8s` → PLC restarts → the new tag
 appears in `plc-tags`.
 
 ## Phase 2 — IMU ×4 and ArUco cameras ×4

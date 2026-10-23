@@ -10,15 +10,13 @@ Sensor noise is added on top, like a real chip would produce.
 The message key is the device ID, so each device's readings stay in order
 within one partition.
 """
-import json
 import math
 import os
 import random
 import signal
 import time
-from datetime import datetime, timezone
 
-from confluent_kafka import Producer
+from telemetry import envelope, make_producer, send
 
 BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "localhost:9092")
 TOPIC = os.getenv("KAFKA_TOPIC", "imu-readings")
@@ -44,11 +42,6 @@ signal.signal(signal.SIGTERM, _request_stop)
 signal.signal(signal.SIGINT, _request_stop)
 
 
-def on_delivery(err, msg):
-    if err is not None:
-        print(f"[{DEVICE_ID}] delivery failed: {err}", flush=True)
-
-
 def simulate(t):
     """Return (accel, gyro) at time t in seconds, with sensor noise."""
     w = 2 * math.pi * TILT_FREQUENCY
@@ -68,25 +61,8 @@ def simulate(t):
     return accel, gyro
 
 
-def send(producer, reading):
-    key = DEVICE_ID.encode()
-    value = json.dumps(reading).encode()
-    while True:
-        try:
-            producer.produce(TOPIC, key=key, value=value, on_delivery=on_delivery)
-            return
-        except BufferError:
-            producer.poll(0.5)
-
-
 def main():
-    producer = Producer({
-        "bootstrap.servers": BOOTSTRAP,
-        "client.id": DEVICE_ID,
-        "acks": "all",
-        "enable.idempotence": True,
-        "linger.ms": 5,
-    })
+    producer = make_producer(BOOTSTRAP, DEVICE_ID)
 
     period = 1.0 / RATE_HZ
     print(f"[{DEVICE_ID}] publishing {RATE_HZ} Hz to '{TOPIC}' via {BOOTSTRAP}", flush=True)
@@ -97,15 +73,11 @@ def main():
         while running:
             t = seq * period
             accel, gyro = simulate(t)
-            reading = {
-                "device_id": DEVICE_ID,
-                "seq": seq,
-                "timestamp": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+            data = {
                 "accel_ms2": {k: round(v, 4) for k, v in accel.items()},
                 "gyro_dps": {k: round(v, 4) for k, v in gyro.items()},
             }
-            send(producer, reading)
-            producer.poll(0)
+            send(producer, TOPIC, DEVICE_ID, envelope(DEVICE_ID, "imu", seq, data))
             seq += 1
 
             # Pace to the target rate without drifting over time.

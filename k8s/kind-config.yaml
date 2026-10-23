@@ -1,0 +1,11 @@
+# 1 control-plane + 2 workers. The "tier" label models the network split:
+# edge devices (PLCs, IMUs, cameras, gateway) run on the edge node, the
+# Kafka/Mongo/API backend runs on the core node.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+  - role: worker
+    labels: {tier: edge}
+  - role: worker
+    labels: {tier: core}

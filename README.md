@@ -1,5 +1,22 @@
-Small project to get familar with Kafka.
+# edge-scada-sim
 
-Docker and simulated services are used here.
+A simulated SCADA environment. Edge devices (OPC UA PLCs, IMUs, ArUco cameras)
+send telemetry through Kafka on Kubernetes, with a MongoDB historian and a React dashboard.
 
-Started to implement some K8s in here, simple setup using Kind and kubectl for now to learn.
+See [`planning/implementation-plan.md`](planning/implementation-plan.md) for the phased plan.
+
+## Run locally
+
+Requires Docker, [kind](https://kind.sigs.k8s.io/), and kubectl.
+
+```sh
+./k8s/deploy.sh            # create the 3-node kind cluster, build images, deploy
+./k8s/deploy.sh teardown   # delete the cluster
+```
+
+Watch IMU data:
+
+```sh
+kubectl -n scada exec kafka-0 -- /opt/kafka/bin/kafka-console-consumer.sh \
+  --bootstrap-server localhost:9092 --topic imu-readings
+```

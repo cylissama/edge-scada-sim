@@ -1,10 +1,10 @@
-# Run-to-completion task: create both topics, then exit.
+# Run-to-completion task: create the topics, then exit.
 # backoffLimit lets K8s retry if the broker isn't quite ready yet.
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: topic-init
-  namespace: kafka-lab
+  namespace: scada
 spec:
   backoffLimit: 10
   template:
@@ -21,6 +21,9 @@ spec:
               set -e
               T=/opt/kafka/bin/kafka-topics.sh
               B=kafka:9092
-              $T --bootstrap-server $B --create --if-not-exists --topic sensor-readings --partitions 3 --replication-factor 1
-              $T --bootstrap-server $B --create --if-not-exists --topic imu-readings --partitions 3 --replication-factor 1
+              # RF=1 while there is a single broker (Phase 6 moves to 3 brokers, RF=3).
+              for spec in plc-tags:6 imu-readings:6 camera-poses:6 scada-events:3; do
+                $T --bootstrap-server $B --create --if-not-exists \
+                   --topic "${spec%%:*}" --partitions "${spec##*:}" --replication-factor 1
+              done
               $T --bootstrap-server $B --list
