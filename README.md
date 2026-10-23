@@ -5,6 +5,23 @@ send telemetry through Kafka on Kubernetes, with a MongoDB historian and a React
 
 See [`planning/implementation-plan.md`](planning/implementation-plan.md) for the phased plan.
 
+## Architecture
+
+```
+kind cluster "edge-scada-sim", namespace "scada"
+│
+├─ worker  [tier=edge]  — one pod per device, each its own Deployment (stop/start individually)
+│    plc-1, plc-2 ◄── OPC UA :4840 ── opcua-gateway ──► plc-tags, scada-events ─┐
+│    imu-1 … imu-4 ─────────────────────────────────► imu-readings ───────────┤
+│    camera-1 … camera-4 ───────────────────────────► camera-poses ───────────┤
+│                                                                             │ kafka:9092
+├─ worker2 [tier=core]                                                        ▼
+│    kafka-0 (KRaft) ──► historian ──► mongo-0 ◄── mongo-express (query UI :8081)
+│        └──────────► api (FastAPI :8000): SSE live stream, topology, start/stop, history
+│
+└─ control-plane
+```
+
 ## Run locally
 
 Requires Docker, [kind](https://kind.sigs.k8s.io/), and kubectl.
@@ -16,6 +33,13 @@ Requires Docker, [kind](https://kind.sigs.k8s.io/), and kubectl.
 
 Change PLC tags: edit `k8s/config/plc-tags.json`, then `kubectl apply -k k8s`. The PLCs restart with the
 new tags, and the gateway picks them up on reconnect.
+
+Open the API (interactive docs at `/docs`):
+
+```sh
+kubectl -n scada port-forward svc/api 8000   # http://localhost:8000/docs
+curl -X POST localhost:8000/api/components/imu-3/stop    # ...and /start
+```
 
 Watch PLC tags (`plc-tags`), alarms/events (`scada-events`), IMU data (`imu-readings`) or camera poses (`camera-poses`):
 

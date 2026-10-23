@@ -236,7 +236,19 @@ appears in `plc-tags`.
 **Done when:** mongo-express shows all collections growing, and killing the historian pod mid-stream
 leaves no gaps (verified by a `seq` continuity aggregate).
 
-## Phase 4 — API (FastAPI)
+## Phase 4 — API (FastAPI) ✅ done
+
+> Built as planned, with these changes:
+> - Endpoints are `/api/topology` (all Deployments/StatefulSets, not only devices) and
+>   `POST /api/components/{name}/start|stop`, plus `/api/plc`, `/api/kafka`, `/api/events`, `/api/history/{device}`
+>   and the SSE stream `/api/stream`.
+> - The SSE stream also pushes `topology` and `kafka` snapshots every 2 s, so the UI needs one connection.
+> - Kubernetes access is a ~60-line stdlib client (`api/kube.py`) instead of the official package. Status comes from
+>   polling every 2 s, not a watch.
+> - RBAC `deployments/scale` is limited by `resourceNames` to the 11 edge Deployments, on top of the label check.
+> - After an API restart, PLC values are seeded from Mongo.
+> - Verified on the cluster: stopping imu-3 shows stopped; stopping the gateway leaves the PLCs stale; restart returns
+>   everything to ok; Kafka and mongo-express are refused.
 
 - **Live stream** `GET /api/stream` (SSE): one consumer (group `dashboard-live`, `latest`) on all topics,
   fanned out to browsers. IMU/camera are downsampled to about 5 Hz per device on the server. PLC tag

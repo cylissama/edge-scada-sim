@@ -43,6 +43,8 @@ spec:
     metadata:
       labels:
         app: kafka
+        role: core-service
+        kind: broker
     spec:
       # A Service named "kafka" makes K8s inject env vars like KAFKA_PORT into
       # pods. The Kafka image treats KAFKA_* env vars as broker config, so

@@ -14,6 +14,7 @@ resources:
   - 45-cameras.yaml
   - 50-mongo.yaml
   - 55-historian.yaml
+  - 60-api.yaml
 configMapGenerator:
   - name: plc-tags
     files: [plc-tags.json=config/plc-tags.json]
@@ -41,4 +42,7 @@ images:
     newTag: dev
   - name: edge-scada-sim-historian
     newName: ghcr.io/cylissama/edge-scada-sim-historian
+    newTag: dev
+  - name: edge-scada-sim-api
+    newName: ghcr.io/cylissama/edge-scada-sim-api
     newTag: dev

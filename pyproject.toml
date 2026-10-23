@@ -7,5 +7,5 @@ line-length = 120
 select = ["E", "F", "I", "B"]
 
 [tool.pytest.ini_options]
-pythonpath = ["common"]
-testpaths = ["common", "plc", "gateway", "imu", "camera", "historian"]
+pythonpath = ["common", "api"]
+testpaths = ["common", "plc", "gateway", "imu", "camera", "historian", "api"]

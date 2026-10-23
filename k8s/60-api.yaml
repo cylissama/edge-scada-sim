@@ -1,0 +1,87 @@
+# Dashboard API. Its ServiceAccount may read pods/deployments/statefulsets and
+# scale ONLY the edge Deployments named below. The API also checks the
+# scada/controllable label, so a mistake in either place can't stop Kafka or Mongo.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: api
+  namespace: scada
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: api
+  namespace: scada
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list]
+  - apiGroups: [apps]
+    resources: [deployments, statefulsets]
+    verbs: [get, list]
+  - apiGroups: [apps]
+    resources: [deployments/scale]
+    verbs: [get, patch]
+    resourceNames: [plc-1, plc-2, opcua-gateway, imu-1, imu-2, imu-3, imu-4, camera-1, camera-2, camera-3, camera-4]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: api
+  namespace: scada
+subjects:
+  - {kind: ServiceAccount, name: api, namespace: scada}
+roleRef:
+  {apiGroup: rbac.authorization.k8s.io, kind: Role, name: api}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: scada
+spec:
+  selector: {app: api}
+  ports:
+    - {name: http, port: 8000, targetPort: http}
+---
+# One replica: each replica would run its own live consumer and SSE fan-out,
+# which is fine, but control/status don't need more than one.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: scada
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: api}
+  template:
+    metadata:
+      labels: {app: api, role: core-service, kind: api}
+    spec:
+      serviceAccountName: api
+      enableServiceLinks: false
+      nodeSelector: {tier: core}
+      containers:
+        - name: api
+          image: edge-scada-sim-api
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: http, containerPort: 8000}
+          env:
+            - {name: KAFKA_BOOTSTRAP, value: "kafka:9092"}
+            - name: MONGO_USER
+              valueFrom: {secretKeyRef: {name: mongo-auth, key: username}}
+            - name: MONGO_PASS
+              valueFrom: {secretKeyRef: {name: mongo-auth, key: password}}
+            - {name: MONGO_URL, value: "mongodb://$(MONGO_USER):$(MONGO_PASS)@mongo:27017/?authSource=admin"}
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests: {cpu: 50m, memory: 96Mi}
+            limits: {memory: 256Mi}

@@ -8,7 +8,7 @@ CLUSTER=edge-scada-sim
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 K="kubectl -n scada"
 # Every service image: built from the repo root with <svc>/Dockerfile.
-SERVICES=(imu camera plc gateway historian)
+SERVICES=(imu camera plc gateway historian api)
 
 if [[ "${1:-}" == "teardown" ]]; then
   kind delete cluster --name "$CLUSTER"
@@ -42,5 +42,5 @@ echo "==> 5/5 Wait for edge services"
 $K rollout restart deployment -l scada/controllable=true
 $K wait --for=condition=available deployment -l scada/controllable=true --timeout=180s
 
-echo "==> Done. Watch the data with:"
-echo "    $K exec kafka-0 -- /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic imu-readings"
+echo "==> Done. Open the API with:"
+echo "    $K port-forward svc/api 8000   ->  http://localhost:8000/docs"

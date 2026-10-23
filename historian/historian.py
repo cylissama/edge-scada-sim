@@ -120,6 +120,10 @@ def ensure_schema(db):
                 )
             except CollectionInvalid:
                 pass  # created concurrently
+    # Secondary indexes for "one device / one tag over time" queries (dashboard history, latest value).
+    db.plc_tags.create_index([("meta.plc", 1), ("meta.tag", 1), ("ts", -1)])
+    db.imu.create_index([("meta.device_id", 1), ("ts", -1)])
+    db.camera_poses.create_index([("meta.device_id", 1), ("ts", -1)])
     db.events.create_index("ts", expireAfterSeconds=RETENTION_DAYS * 86400)  # TTL; also serves ts sorts
     db.events.create_index([("device_id", 1), ("ts", -1)])
 
