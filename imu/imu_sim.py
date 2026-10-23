@@ -1,10 +1,12 @@
 """Simulated 6-axis IMU (accelerometer + gyroscope) publishing to Kafka.
 
-The device tilts back and forth about the Y axis at 0.5 Hz. The accelerometer
-and gyroscope values are derived from that tilt, so they agree physically:
+The device tilts back and forth about one axis (TILT_AXIS, x or y). The
+accelerometer and gyroscope values are derived from that tilt, so they agree
+physically. For a tilt about Y:
   - tilt angle:        theta(t) = AMPLITUDE * sin(2*pi*F*t)  (degrees)
   - accel x = g*sin(theta), accel z = g*cos(theta)  (gravity projected onto axes)
   - gyro y  = d(theta)/dt                             (degrees per second)
+A tilt about X is the same with accel y = -g*sin(theta) and gyro x = d(theta)/dt.
 Sensor noise is added on top, like a real chip would produce.
 
 The message key is the device ID, so each device's readings stay in order
@@ -24,8 +26,9 @@ DEVICE_ID = os.getenv("DEVICE_ID", "imu-1")
 RATE_HZ = float(os.getenv("RATE_HZ", "10"))
 
 G = 9.81                 # m/s^2
-TILT_AMPLITUDE = 30.0    # degrees
-TILT_FREQUENCY = 0.5     # Hz
+TILT_AXIS = os.getenv("TILT_AXIS", "y")
+TILT_AMPLITUDE = float(os.getenv("TILT_AMPLITUDE_DEG", "30"))
+TILT_FREQUENCY = float(os.getenv("TILT_FREQUENCY_HZ", "0.5"))
 
 ACCEL_NOISE = 0.05       # m/s^2 (1 sigma)
 GYRO_NOISE = 0.5         # deg/s (1 sigma)
@@ -48,16 +51,15 @@ def simulate(t):
     theta = math.radians(TILT_AMPLITUDE * math.sin(w * t))
     theta_dot = math.radians(TILT_AMPLITUDE * w * math.cos(w * t))  # rad/s
 
-    accel = {
-        "x": G * math.sin(theta) + random.gauss(0, ACCEL_NOISE),
-        "y": random.gauss(0, ACCEL_NOISE),
-        "z": G * math.cos(theta) + random.gauss(0, ACCEL_NOISE),
-    }
-    gyro = {
-        "x": random.gauss(0, GYRO_NOISE),
-        "y": math.degrees(theta_dot) + random.gauss(0, GYRO_NOISE),
-        "z": random.gauss(0, GYRO_NOISE),
-    }
+    accel = {"x": 0.0, "y": 0.0, "z": G * math.cos(theta)}
+    gyro = {"x": 0.0, "y": 0.0, "z": 0.0}
+    if TILT_AXIS == "x":
+        accel["y"] = -G * math.sin(theta)
+    else:
+        accel["x"] = G * math.sin(theta)
+    gyro[TILT_AXIS] = math.degrees(theta_dot)
+    accel = {k: v + random.gauss(0, ACCEL_NOISE) for k, v in accel.items()}
+    gyro = {k: v + random.gauss(0, GYRO_NOISE) for k, v in gyro.items()}
     return accel, gyro
 
 
@@ -65,7 +67,8 @@ def main():
     producer = make_producer(BOOTSTRAP, DEVICE_ID)
 
     period = 1.0 / RATE_HZ
-    print(f"[{DEVICE_ID}] publishing {RATE_HZ} Hz to '{TOPIC}' via {BOOTSTRAP}", flush=True)
+    print(f"[{DEVICE_ID}] tilt {TILT_AMPLITUDE} deg @ {TILT_FREQUENCY} Hz about {TILT_AXIS}, "
+          f"publishing {RATE_HZ} Hz to '{TOPIC}' via {BOOTSTRAP}", flush=True)
 
     seq = 0
     next_tick = time.monotonic()

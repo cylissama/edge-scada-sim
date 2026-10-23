@@ -10,7 +10,8 @@ resources:
   - 20-topic-init-job.yaml
   - 30-plcs.yaml
   - 35-gateway.yaml
-  - 40-imu.yaml
+  - 40-imus.yaml
+  - 45-cameras.yaml
 configMapGenerator:
   - name: plc-tags
     files: [plc-tags.json=config/plc-tags.json]
@@ -23,4 +24,7 @@ images:
     newTag: dev
   - name: edge-scada-sim-gateway
     newName: ghcr.io/cylissama/edge-scada-sim-gateway
+    newTag: dev
+  - name: edge-scada-sim-camera
+    newName: ghcr.io/cylissama/edge-scada-sim-camera
     newTag: dev

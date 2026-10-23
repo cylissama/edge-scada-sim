@@ -7,6 +7,6 @@ WORKDIR /app
 COPY imu/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY common/telemetry.py imu/main.py ./
+COPY common/telemetry.py imu/imu_sim.py ./
 
-CMD ["python", "-u", "main.py"]
+CMD ["python", "-u", "imu_sim.py"]

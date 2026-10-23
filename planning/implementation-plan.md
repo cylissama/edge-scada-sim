@@ -174,7 +174,11 @@ How each tag gets its value:
 **Done when:** editing `k8s/config/plc-tags.json` + `kubectl apply -k k8s` → PLC restarts → the new tag
 appears in `plc-tags`.
 
-## Phase 2 — IMU ×4 and ArUco cameras ×4
+## Phase 2 — IMU ×4 and ArUco cameras ×4 ✅ done
+
+> Built as planned. Cameras look straight down at a conveyor loop: one message per frame with all of that camera's
+> markers, `tvec`/`rvec` in OpenCV/ArUco conventions. The loop fits inside the view on cameras 2 and 4; on 1 and 3 it
+> is wider, so markers drop out at the ends. IMUs differ by tilt axis, amplitude and frequency. Total ≈ 108 msg/s.
 
 - **IMU**: the existing simulator gets 4 Deployments (`imu-1`..`imu-4`), each with a different
   tilt amplitude/frequency/axis so the plots don't look identical.

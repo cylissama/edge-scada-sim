@@ -1,0 +1,143 @@
+# Simulated overhead ArUco cameras. Markers ride a rounded-rectangle loop;
+# each camera has its own loop size, speed and depth. Cameras 2 and 4 see the
+# whole loop; on 1 and 3 the loop is wider than the view, so markers drop out at the ends.
+# ponytail: blocks repeated per device; template them if device count grows.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: camera-1
+  namespace: scada
+  labels: &labels {app: camera-1, role: device, kind: camera, scada/controllable: "true"}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: camera-1}
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      enableServiceLinks: false
+      nodeSelector: {tier: edge}
+      containers:
+        - name: camera
+          image: edge-scada-sim-camera
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: KAFKA_BOOTSTRAP, value: "kafka:9092"}
+            - {name: DEVICE_ID, value: "camera-1"}
+            - {name: KAFKA_TOPIC, value: "camera-poses"}
+            - {name: FPS, value: "15"}
+            - {name: MARKERS, value: "1,2,3"}
+            - {name: PATH_W, value: "2.4"}
+            - {name: PATH_H, value: "1.2"}
+            - {name: CORNER_R, value: "0.3"}
+            - {name: SPEED, value: "0.25"}
+            - {name: DEPTH, value: "1.5"}
+          resources:
+            requests: {cpu: 20m, memory: 40Mi}
+            limits: {memory: 96Mi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: camera-2
+  namespace: scada
+  labels: &labels {app: camera-2, role: device, kind: camera, scada/controllable: "true"}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: camera-2}
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      enableServiceLinks: false
+      nodeSelector: {tier: edge}
+      containers:
+        - name: camera
+          image: edge-scada-sim-camera
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: KAFKA_BOOTSTRAP, value: "kafka:9092"}
+            - {name: DEVICE_ID, value: "camera-2"}
+            - {name: KAFKA_TOPIC, value: "camera-poses"}
+            - {name: FPS, value: "15"}
+            - {name: MARKERS, value: "4,5"}
+            - {name: PATH_W, value: "1.8"}
+            - {name: PATH_H, value: "1.0"}
+            - {name: CORNER_R, value: "0.4"}
+            - {name: SPEED, value: "0.4"}
+            - {name: DEPTH, value: "1.5"}
+          resources:
+            requests: {cpu: 20m, memory: 40Mi}
+            limits: {memory: 96Mi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: camera-3
+  namespace: scada
+  labels: &labels {app: camera-3, role: device, kind: camera, scada/controllable: "true"}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: camera-3}
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      enableServiceLinks: false
+      nodeSelector: {tier: edge}
+      containers:
+        - name: camera
+          image: edge-scada-sim-camera
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: KAFKA_BOOTSTRAP, value: "kafka:9092"}
+            - {name: DEVICE_ID, value: "camera-3"}
+            - {name: KAFKA_TOPIC, value: "camera-poses"}
+            - {name: FPS, value: "15"}
+            - {name: MARKERS, value: "6,7,8,9"}
+            - {name: PATH_W, value: "2.8"}
+            - {name: PATH_H, value: "1.4"}
+            - {name: CORNER_R, value: "0.2"}
+            - {name: SPEED, value: "0.15"}
+            - {name: DEPTH, value: "1.8"}
+          resources:
+            requests: {cpu: 20m, memory: 40Mi}
+            limits: {memory: 96Mi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: camera-4
+  namespace: scada
+  labels: &labels {app: camera-4, role: device, kind: camera, scada/controllable: "true"}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: camera-4}
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      enableServiceLinks: false
+      nodeSelector: {tier: edge}
+      containers:
+        - name: camera
+          image: edge-scada-sim-camera
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: KAFKA_BOOTSTRAP, value: "kafka:9092"}
+            - {name: DEVICE_ID, value: "camera-4"}
+            - {name: KAFKA_TOPIC, value: "camera-poses"}
+            - {name: FPS, value: "15"}
+            - {name: MARKERS, value: "10,11"}
+            - {name: PATH_W, value: "1.6"}
+            - {name: PATH_H, value: "1.6"}
+            - {name: CORNER_R, value: "0.6"}
+            - {name: SPEED, value: "0.3"}
+            - {name: DEPTH, value: "1.8"}
+          resources:
+            requests: {cpu: 20m, memory: 40Mi}
+            limits: {memory: 96Mi}

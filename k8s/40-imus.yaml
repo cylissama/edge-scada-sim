@@ -1,0 +1,130 @@
+# Simulated 6-axis IMUs. One Deployment per device so each can be stopped
+# individually (scale 0 <-> 1). Each tilts differently so the plots differ.
+# ponytail: blocks repeated per device; template them if device count grows.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imu-1
+  namespace: scada
+  labels: &labels {app: imu-1, role: device, kind: imu, scada/controllable: "true"}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: imu-1}
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      enableServiceLinks: false
+      nodeSelector: {tier: edge}
+      containers:
+        - name: imu
+          image: edge-scada-sim-imu
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: KAFKA_BOOTSTRAP, value: "kafka:9092"}
+            - {name: DEVICE_ID, value: "imu-1"}
+            - {name: KAFKA_TOPIC, value: "imu-readings"}
+            - {name: RATE_HZ, value: "10"}
+            - {name: TILT_AXIS, value: "y"}
+            - {name: TILT_AMPLITUDE_DEG, value: "30"}
+            - {name: TILT_FREQUENCY_HZ, value: "0.5"}
+          resources:
+            requests: {cpu: 20m, memory: 40Mi}
+            limits: {memory: 96Mi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imu-2
+  namespace: scada
+  labels: &labels {app: imu-2, role: device, kind: imu, scada/controllable: "true"}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: imu-2}
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      enableServiceLinks: false
+      nodeSelector: {tier: edge}
+      containers:
+        - name: imu
+          image: edge-scada-sim-imu
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: KAFKA_BOOTSTRAP, value: "kafka:9092"}
+            - {name: DEVICE_ID, value: "imu-2"}
+            - {name: KAFKA_TOPIC, value: "imu-readings"}
+            - {name: RATE_HZ, value: "10"}
+            - {name: TILT_AXIS, value: "x"}
+            - {name: TILT_AMPLITUDE_DEG, value: "15"}
+            - {name: TILT_FREQUENCY_HZ, value: "1.2"}
+          resources:
+            requests: {cpu: 20m, memory: 40Mi}
+            limits: {memory: 96Mi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imu-3
+  namespace: scada
+  labels: &labels {app: imu-3, role: device, kind: imu, scada/controllable: "true"}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: imu-3}
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      enableServiceLinks: false
+      nodeSelector: {tier: edge}
+      containers:
+        - name: imu
+          image: edge-scada-sim-imu
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: KAFKA_BOOTSTRAP, value: "kafka:9092"}
+            - {name: DEVICE_ID, value: "imu-3"}
+            - {name: KAFKA_TOPIC, value: "imu-readings"}
+            - {name: RATE_HZ, value: "10"}
+            - {name: TILT_AXIS, value: "y"}
+            - {name: TILT_AMPLITUDE_DEG, value: "45"}
+            - {name: TILT_FREQUENCY_HZ, value: "0.2"}
+          resources:
+            requests: {cpu: 20m, memory: 40Mi}
+            limits: {memory: 96Mi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imu-4
+  namespace: scada
+  labels: &labels {app: imu-4, role: device, kind: imu, scada/controllable: "true"}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: imu-4}
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      enableServiceLinks: false
+      nodeSelector: {tier: edge}
+      containers:
+        - name: imu
+          image: edge-scada-sim-imu
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: KAFKA_BOOTSTRAP, value: "kafka:9092"}
+            - {name: DEVICE_ID, value: "imu-4"}
+            - {name: KAFKA_TOPIC, value: "imu-readings"}
+            - {name: RATE_HZ, value: "10"}
+            - {name: TILT_AXIS, value: "x"}
+            - {name: TILT_AMPLITUDE_DEG, value: "8"}
+            - {name: TILT_FREQUENCY_HZ, value: "2.0"}
+          resources:
+            requests: {cpu: 20m, memory: 40Mi}
+            limits: {memory: 96Mi}
