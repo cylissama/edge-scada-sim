@@ -1,0 +1,29 @@
+# Edge gateway: subscribes to every PLC over OPC UA and forwards to Kafka.
+# Controllable too: stopping it cuts all PLC data, like losing the edge uplink.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opcua-gateway
+  namespace: scada
+  labels: &labels {app: opcua-gateway, role: edge-service, kind: gateway, scada/controllable: "true"}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: opcua-gateway}
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      enableServiceLinks: false
+      nodeSelector: {tier: edge}
+      containers:
+        - name: gateway
+          image: edge-scada-sim-gateway
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: KAFKA_BOOTSTRAP, value: "kafka:9092"}
+            - {name: PLC_ENDPOINTS, value: "plc-1=opc.tcp://plc-1:4840,plc-2=opc.tcp://plc-2:4840"}
+            - {name: PUBLISH_MS, value: "250"}
+          resources:
+            requests: {cpu: 30m, memory: 64Mi}
+            limits: {memory: 192Mi}

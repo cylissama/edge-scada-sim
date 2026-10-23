@@ -1,0 +1,65 @@
+{
+  "plc-1": {
+    "description": "Line 1 conveyor controller (VFD-driven belt)",
+    "profile": "conveyor",
+    "scan_ms": 100,
+    "tags": {
+      "System": {
+        "PLC_ON":            {"type": "Boolean", "value": true},
+        "Mode":              {"type": "Int16",   "value": 2, "enum": {"0": "Off", "1": "Manual", "2": "Auto"}},
+        "Heartbeat":         {"type": "UInt32",  "sim": "counter"},
+        "Fault_Code":        {"type": "UInt16",  "value": 0, "enum": {"0": "OK", "101": "Motor overtemperature"}, "alarm": {"ne": 0}},
+        "CPU_Load":          {"type": "Float",   "unit": "%", "value": 18, "sim": {"walk": 1.0, "min": 8, "max": 35}}
+      },
+      "Drive": {
+        "Run_Cmd":           {"type": "Boolean", "value": true},
+        "Running":           {"type": "Boolean", "value": false},
+        "Speed_Setpoint":    {"type": "Float",   "unit": "rpm", "value": 1450},
+        "Speed_Actual":      {"type": "Float",   "unit": "rpm", "value": 0},
+        "Motor_Current":     {"type": "Float",   "unit": "A",   "value": 0},
+        "Motor_Temp":        {"type": "Float",   "unit": "°C",  "value": 25, "alarm": {"hi": 80, "hihi": 90}},
+        "DC_Bus_Voltage":    {"type": "Float",   "unit": "V",   "value": 650, "sim": {"walk": 0.5, "min": 640, "max": 660}},
+        "Run_Hours":         {"type": "Double",  "unit": "h",   "value": 1873.2}
+      },
+      "Line": {
+        "Parts_Count":       {"type": "UInt32",  "value": 0},
+        "EStop_OK":          {"type": "Boolean", "value": true, "alarm": {"ne": true}},
+        "Guard_Door_Closed": {"type": "Boolean", "value": true, "alarm": {"ne": true}}
+      }
+    }
+  },
+  "plc-2": {
+    "description": "Robot cell 1 controller (machining robot with spindle and coolant)",
+    "profile": "robot_cell",
+    "scan_ms": 100,
+    "tags": {
+      "System": {
+        "PLC_ON":            {"type": "Boolean", "value": true},
+        "Mode":              {"type": "Int16",   "value": 2, "enum": {"0": "Off", "1": "Manual", "2": "Auto"}},
+        "Heartbeat":         {"type": "UInt32",  "sim": "counter"},
+        "Fault_Code":        {"type": "UInt16",  "value": 0, "enum": {"0": "OK", "202": "Coolant pressure loss"}, "alarm": {"ne": 0}},
+        "CPU_Load":          {"type": "Float",   "unit": "%", "value": 24, "sim": {"walk": 1.5, "min": 12, "max": 45}}
+      },
+      "Robot": {
+        "ROBOT_ON":          {"type": "Boolean", "value": true},
+        "State":             {"type": "Int16",   "value": 0, "enum": {"0": "Idle", "1": "Running", "2": "Paused", "3": "Faulted"}},
+        "Program_No":        {"type": "Int16",   "value": 12},
+        "Cycle_Count":       {"type": "UInt32",  "value": 0},
+        "Cycle_Time":        {"type": "Float",   "unit": "s", "value": 0}
+      },
+      "Spindle": {
+        "Speed":             {"type": "Float",   "unit": "rpm", "value": 0},
+        "Temp":              {"type": "Float",   "unit": "°C",  "value": 28, "alarm": {"hi": 70}}
+      },
+      "Coolant": {
+        "Pump_On":           {"type": "Boolean", "value": false},
+        "Temp":              {"type": "Float",   "unit": "°C",  "value": 21},
+        "Pressure":          {"type": "Float",   "unit": "bar", "value": 4.5, "alarm": {"lo": 2.0}}
+      },
+      "Safety": {
+        "EStop_OK":            {"type": "Boolean", "value": true, "alarm": {"ne": true}},
+        "Light_Curtain_Clear": {"type": "Boolean", "value": true}
+      }
+    }
+  }
+}

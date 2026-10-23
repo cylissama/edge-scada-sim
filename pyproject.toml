@@ -1,0 +1,11 @@
+# Tool config only; each service has its own requirements.txt and Dockerfile.
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+
+[tool.pytest.ini_options]
+pythonpath = ["common"]
+testpaths = ["common", "plc", "gateway"]

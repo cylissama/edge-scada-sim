@@ -8,7 +8,7 @@ CLUSTER=edge-scada-sim
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 K="kubectl -n scada"
 # Every service image: built from the repo root with <svc>/Dockerfile.
-SERVICES=(imu)
+SERVICES=(imu plc gateway)
 
 if [[ "${1:-}" == "teardown" ]]; then
   kind delete cluster --name "$CLUSTER"
@@ -37,10 +37,10 @@ echo "==> 4/5 Wait for Kafka and topics"
 $K rollout status statefulset/kafka --timeout=300s
 $K wait --for=condition=complete job/topic-init --timeout=180s
 
-echo "==> 5/5 Wait for devices"
-# Restart devices so freshly loaded :dev images are picked up.
-$K rollout restart deployment -l role=device
-$K wait --for=condition=available deployment -l role=device --timeout=180s
+echo "==> 5/5 Wait for edge services"
+# Restart edge services so freshly loaded :dev images are picked up.
+$K rollout restart deployment -l scada/controllable=true
+$K wait --for=condition=available deployment -l scada/controllable=true --timeout=180s
 
 echo "==> Done. Watch the data with:"
 echo "    $K exec kafka-0 -- /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic imu-readings"

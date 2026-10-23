@@ -3,12 +3,24 @@
 # CI-built GHCR images (CI runs: kustomize edit set image ...).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+namespace: scada
 resources:
   - 00-namespace.yaml
   - 10-kafka.yaml
   - 20-topic-init-job.yaml
+  - 30-plcs.yaml
+  - 35-gateway.yaml
   - 40-imu.yaml
+configMapGenerator:
+  - name: plc-tags
+    files: [plc-tags.json=config/plc-tags.json]
 images:
   - name: edge-scada-sim-imu
     newName: ghcr.io/cylissama/edge-scada-sim-imu
+    newTag: dev
+  - name: edge-scada-sim-plc
+    newName: ghcr.io/cylissama/edge-scada-sim-plc
+    newTag: dev
+  - name: edge-scada-sim-gateway
+    newName: ghcr.io/cylissama/edge-scada-sim-gateway
     newTag: dev

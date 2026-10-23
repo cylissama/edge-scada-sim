@@ -87,7 +87,12 @@ unique, even after a restart resets `seq` (needed for the duplicate/gap checks i
 
 **Done when:** `./k8s/deploy.sh` brings up the 3-node cluster with the new topics, and CI is green on GitHub.
 
-## Phase 1 — PLC simulators (OPC UA) + edge gateway
+## Phase 1 — PLC simulators (OPC UA) + edge gateway ✅ done
+
+> Built as planned. Notes: alarm limits travel as OPC UA properties (`Unit`, `Enum`, `AlarmLimits`) on each
+> tag, and the gateway evaluates them, so a new alarm only needs the JSON. Profiles auto-reset faults (marked
+> `ponytail:`). `kubectl apply -k k8s` puts replicas back to 1, which undoes any stop made from the dashboard.
+> The gateway is also `scada/controllable` (role `edge-service`).
 
 ### Tag model — `k8s/config/plc-tags.json`
 

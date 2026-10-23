@@ -14,7 +14,10 @@ Requires Docker, [kind](https://kind.sigs.k8s.io/), and kubectl.
 ./k8s/deploy.sh teardown   # delete the cluster
 ```
 
-Watch IMU data:
+Change PLC tags: edit `k8s/config/plc-tags.json`, then `kubectl apply -k k8s`. The PLCs restart with the
+new tags, and the gateway picks them up on reconnect.
+
+Watch PLC tags (`plc-tags`), alarms/events (`scada-events`) or IMU data (`imu-readings`):
 
 ```sh
 kubectl -n scada exec kafka-0 -- /opt/kafka/bin/kafka-console-consumer.sh \
