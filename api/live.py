@@ -13,7 +13,7 @@ import os
 import threading
 import time
 
-from confluent_kafka import OFFSET_END, Consumer, ConsumerGroupTopicPartitions, TopicPartition
+from confluent_kafka import OFFSET_END, Consumer, ConsumerGroupTopicPartitions, KafkaException, TopicPartition
 from confluent_kafka.admin import AdminClient, OffsetSpec
 
 BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "localhost:9092")
@@ -105,15 +105,23 @@ class Live:
             "bootstrap.servers": BOOTSTRAP,
             "group.id": LIVE_GROUP,
             "enable.auto.commit": True,   # committed offsets make our lag visible in the Kafka panel
+            "auto.commit.interval.ms": 1000,
         })
 
-        def start_at_end(c, partitions):
-            # A dashboard wants "now", not a replay of everything since it was last up.
-            for p in partitions:
-                p.offset = OFFSET_END
-            c.assign(partitions)
-
-        consumer.subscribe(TOPICS, on_assign=start_at_end)
+        # Assign every partition ourselves instead of subscribing as a group member: a
+        # group would split partitions between API replicas (including the old and new
+        # pod during a rolling update), and each replica must see every device.
+        # Start at the end, since a dashboard wants "now" and not a replay.
+        # The group id is only used to commit offsets, so the Kafka panel can show our lag.
+        # ponytail: partitions added later need an API restart to be picked up.
+        while True:
+            try:
+                md = consumer.list_topics(timeout=10)
+                break
+            except KafkaException as e:
+                print(f"[api] waiting for Kafka: {e}", flush=True)
+        consumer.assign([TopicPartition(t, p, OFFSET_END) for t in TOPICS if t in md.topics
+                         for p in md.topics[t].partitions])
         print(f"[api] live consumer on {TOPICS} (group {LIVE_GROUP}, {LIVE_HZ} Hz per device)", flush=True)
         while True:
             msg = consumer.poll(1.0)

@@ -82,7 +82,9 @@ def build_topology(deployments, statefulsets, pods, last_seen, plc_bad, now):
         }
         c["status"] = component_status(c, c["last_msg_age"], plc_bad.get(c["id"], False))
         components.append(c)
-    return sorted(components, key=lambda c: (c["tier"] != "edge", c["kind"], c["id"]))
+    order = ["plc", "gateway", "imu", "camera", "broker", "historian", "database", "db-ui", "api"]  # data-flow order
+    rank = {k: i for i, k in enumerate(order)}
+    return sorted(components, key=lambda c: (c["tier"] != "edge", rank.get(c["kind"], len(order)), c["id"]))
 
 
 def seed_plc_from_history():

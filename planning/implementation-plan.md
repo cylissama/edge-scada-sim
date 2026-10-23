@@ -270,7 +270,14 @@ leaves no gaps (verified by a `seq` continuity aggregate).
 
 **Done when:** `curl -X POST …/imu-3/stop` → pod gone, `/api/devices` shows red, an event is logged.
 
-## Phase 5 — React frontend (TypeScript)
+## Phase 5 — React frontend (TypeScript) ✅ done (neutral styling; SMR restyle pending)
+
+> Built as planned: React 18 + TS + Vite 5 + uPlot, inline SVG icons, served by the API image (multi-stage build).
+> One `EventSource` feeds mutable buffers, and React re-renders at most every 250 ms. Clicking a numeric PLC tag shows
+> a 10-minute trend from the historian. Colours are CSS variables in `:root`, so the SMR restyle is mostly one block.
+> Fixes found while testing: `deploy.sh` now restarts every Deployment (rebuilt core images weren't rolling out), and
+> the API's live consumer assigns all partitions itself, because as a group member it shared them with the old pod
+> during rollouts and devices showed "No data".
 
 - Vite + React + TS. Runtime deps: `react`, `react-dom`, `uplot` (small, handles 10 Hz+ well).
   Icons are hand-made inline SVGs (PLC, IMU, camera, gateway, broker, DB). No UI or icon library.

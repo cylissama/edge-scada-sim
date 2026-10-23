@@ -37,10 +37,11 @@ echo "==> 4/5 Wait for Kafka and topics"
 $K rollout status statefulset/kafka --timeout=300s
 $K wait --for=condition=complete job/topic-init --timeout=180s
 
-echo "==> 5/5 Wait for edge services"
-# Restart edge services so freshly loaded :dev images are picked up.
-$K rollout restart deployment -l scada/controllable=true
-$K wait --for=condition=available deployment -l scada/controllable=true --timeout=180s
+echo "==> 5/5 Restart Deployments and wait"
+# The :dev tag doesn't change between builds, so Kubernetes can't tell an image
+# was rebuilt: restart every Deployment so the freshly loaded images are used.
+$K rollout restart deployment
+$K wait --for=condition=available deployment --all --timeout=180s
 
 echo "==> Done. Open the API with:"
 echo "    $K port-forward svc/api 8000   ->  http://localhost:8000/docs"

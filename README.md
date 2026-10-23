@@ -34,10 +34,10 @@ Requires Docker, [kind](https://kind.sigs.k8s.io/), and kubectl.
 Change PLC tags: edit `k8s/config/plc-tags.json`, then `kubectl apply -k k8s`. The PLCs restart with the
 new tags, and the gateway picks them up on reconnect.
 
-Open the API (interactive docs at `/docs`):
+Open the dashboard (and the API docs at `/docs`):
 
 ```sh
-kubectl -n scada port-forward svc/api 8000   # http://localhost:8000/docs
+kubectl -n scada port-forward svc/api 8000   # dashboard: http://localhost:8000   API docs: /docs
 curl -X POST localhost:8000/api/components/imu-3/stop    # ...and /start
 ```
 
@@ -46,6 +46,12 @@ Watch PLC tags (`plc-tags`), alarms/events (`scada-events`), IMU data (`imu-read
 ```sh
 kubectl -n scada exec kafka-0 -- /opt/kafka/bin/kafka-console-consumer.sh \
   --bootstrap-server localhost:9092 --topic imu-readings
+```
+
+Frontend development with hot reload (proxies `/api` to the port-forward above):
+
+```sh
+cd web && npm install && npm run dev        # http://localhost:5173
 ```
 
 ## Historian (MongoDB)
